@@ -67,7 +67,8 @@ def sgd_momentum(w, dw, config=None):
     # TODO: Implement the momentum update formula. Store the updated value in #
     # the next_w variable. You should also use and update the velocity v.     #
     ###########################################################################
-
+    v = config["momentum"] * v - config["learning_rate"] * dw
+    next_w = w + v
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -111,7 +112,26 @@ def adam(w, dw, config=None):
     # NOTE: In order to match the reference output, please modify t _before_  #
     # using it in any calculations.                                           #
     ###########################################################################
-
+    config["t"] += 1
+    
+    learning_rate = config["learning_rate"]
+    beta1 = config["beta1"]
+    beta2 = config["beta2"]
+    epsilon = config["epsilon"]
+    m = config["m"]
+    v = config["v"]
+    t = config["t"]
+    
+    m = beta1 * m + (1 - beta1) * dw
+    v = beta2 * v + (1 - beta2) * (dw ** 2)
+    
+    m_hat = m / (1 - beta1 ** t)
+    v_hat = v / (1 - beta2 ** t)
+    
+    next_w = w - learning_rate * m_hat / (np.sqrt(v_hat) + epsilon)
+    
+    config["m"] = m
+    config["v"] = v
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
