@@ -59,8 +59,14 @@ class ThreeLayerConvNet(object):
         # начало функции loss() #
         ############################################################################
         F, (C, H, W) = num_filters, input_dim # dim size
-        self.params.update({ #...
-                            })
+        self.params.update({
+            'W1': weight_scale * np.random.randn(F, C, filter_size, filter_size),
+            'b1': np.zeros(F),
+            'W2': weight_scale * np.random.randn((H // 2) * (W // 2) * F, hidden_dim),
+            'b2': np.zeros(hidden_dim),
+            'W3': weight_scale * np.random.randn(hidden_dim, num_classes),
+            'b3': np.zeros(num_classes),
+        })
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -95,7 +101,14 @@ class ThreeLayerConvNet(object):
         # вы можете использовать функции, определенные в classifiesr/layers.py и #
         # classifiers/layer_utils.py. #
         ############################################################################
-        # 
+        out_conv, cache_conv = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
+        
+        N, F, H_out, W_out = out_conv.shape
+        out_flat = out_conv.reshape(N, F * H_out * W_out)
+        
+        out_hidden, cache_hidden = affine_relu_forward(out_flat, W2, b2)
+        
+        scores, cache_out = affine_forward(out_hidden, W3, b3)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -113,9 +126,24 @@ class ThreeLayerConvNet(object):
         # ПРИМЕЧАНИЕ:  L2-регуляризация включает множитель #
         # равный 0,5 для упрощения выражения для градиента. #
         ############################################################################
-        # loss, dout = softmax_loss(scores, y)                                     # loss and dout
-        # loss += 0.5 * self.reg * (np.sum(W1**2) + np.sum(W2**2) + np.sum(W3**2)) # regularized loss
-        # ...
+        loss, dout = softmax_loss(scores, y)                                     # loss and dout
+        loss += 0.5 * self.reg * (np.sum(W1**2) + np.sum(W2**2) + np.sum(W3**2)) # regularized loss
+        
+        grads = {}
+        
+        dout_hidden, dw3, db3 = affine_backward(dout, cache_out)
+        grads['W3'] = dw3 + self.reg * W3
+        grads['b3'] = db3
+        
+        dout_flat, dw2, db2 = affine_relu_backward(dout_hidden, cache_hidden)
+        grads['W2'] = dw2 + self.reg * W2
+        grads['b2'] = db2
+        
+        dout_conv = dout_flat.reshape(N, F, H_out, W_out)
+        
+        _, dw1, db1 = conv_relu_pool_backward(dout_conv, cache_conv)
+        grads['W1'] = dw1 + self.reg * W1
+        grads['b1'] = db1
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
